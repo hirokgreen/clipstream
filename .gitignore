@@ -15,4 +15,7 @@ DerivedData/
 node_modules/
 .env
 .env.local
+# Build outputs & DMG
+build/
+*.dmg
 clipstream_deploy_key*

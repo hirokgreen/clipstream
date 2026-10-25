@@ -1,11 +1,9 @@
 import SwiftUI
-import SwiftData
 
 /// The primary floating HUD window view for Clipstream (720x460pt) featuring
 /// a quick search bar, category filter pills, 40/60 split list and live inspector pane.
 public struct ClipstreamView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query(sort: \ClipItem.timestamp, order: .reverse) private var allItems: [ClipItem]
+    @ObservedObject private var clipboardManager = ClipboardManager.shared
     
     @State private var searchText: String = ""
     @State private var selectedFilter: FilterCategory = .all
@@ -27,8 +25,7 @@ public struct ClipstreamView: View {
     }
     
     private var filteredItems: [ClipItem] {
-        allItems.filter { item in
-            // Search text match
+        clipboardManager.items.filter { item in
             let matchesSearch = searchText.isEmpty ||
                 item.rawContent.localizedCaseInsensitiveContains(searchText) ||
                 item.title.localizedCaseInsensitiveContains(searchText) ||
@@ -36,7 +33,6 @@ public struct ClipstreamView: View {
             
             guard matchesSearch else { return false }
             
-            // Category filter match
             switch selectedFilter {
             case .all:
                 return true
@@ -59,10 +55,10 @@ public struct ClipstreamView: View {
     }
     
     private var activeInspectorItem: ClipItem? {
-        if let hovered = hoveredItemId, let item = allItems.first(where: { $0.id == hovered }) {
+        if let hovered = hoveredItemId, let item = clipboardManager.items.first(where: { $0.id == hovered }) {
             return item
         }
-        if let selected = selectedItemId, let item = allItems.first(where: { $0.id == selected }) {
+        if let selected = selectedItemId, let item = clipboardManager.items.first(where: { $0.id == selected }) {
             return item
         }
         return filteredItems.first
@@ -70,22 +66,12 @@ public struct ClipstreamView: View {
     
     public var body: some View {
         VStack(spacing: 0) {
-            // MARK: - Top Bar (Search + Filter Pills)
             topBarView
-            
-            Divider()
-                .opacity(0.15)
-            
-            // MARK: - Split Content (40% List / 60% Inspector)
+            Divider().opacity(0.15)
             HStack(spacing: 0) {
-                // Left Column: Compact History List (40% width = ~288pt)
                 historyListView
                     .frame(width: 288)
-                
-                Divider()
-                    .opacity(0.18)
-                
-                // Right Column: Dynamic Live Inspector (60% width = ~432pt)
+                Divider().opacity(0.18)
                 inspectorView
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -107,10 +93,8 @@ public struct ClipstreamView: View {
         }
     }
     
-    // MARK: - Top Bar
     private var topBarView: some View {
         HStack(spacing: 12) {
-            // Search Field
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(.secondary)
@@ -134,7 +118,6 @@ public struct ClipstreamView: View {
             .background(Color.primary.opacity(0.05))
             .cornerRadius(8)
             
-            // Filter Pills
             HStack(spacing: 4) {
                 ForEach(FilterCategory.allCases, id: \.self) { cat in
                     Button(action: { selectedFilter = cat }) {
@@ -156,7 +139,6 @@ public struct ClipstreamView: View {
         .padding(.vertical, 12)
     }
     
-    // MARK: - History List View (Left Column)
     private var historyListView: some View {
         ScrollView {
             LazyVStack(spacing: 2) {
@@ -164,7 +146,6 @@ public struct ClipstreamView: View {
                     let isSelected = (item.id == (hoveredItemId ?? selectedItemId))
                     
                     HStack(spacing: 8) {
-                        // Numeric instant-paste badge (1-9)
                         if index < 9 {
                             Text("\(index + 1)")
                                 .font(.system(size: 10, weight: .bold, design: .monospaced))
@@ -174,12 +155,10 @@ public struct ClipstreamView: View {
                             Spacer().frame(width: 14)
                         }
                         
-                        // Content Type Icon
                         typeIcon(for: item.contentType)
                             .foregroundColor(isSelected ? .white : iconColor(for: item.contentType))
                             .frame(width: 16)
                         
-                        // Title preview
                         Text(item.title)
                             .font(.system(size: 12, weight: .regular))
                             .lineLimit(1)
@@ -187,7 +166,6 @@ public struct ClipstreamView: View {
                         
                         Spacer()
                         
-                        // Pinned Indicator
                         if item.isPinned {
                             Image(systemName: "pin.fill")
                                 .font(.system(size: 9))
@@ -216,7 +194,6 @@ public struct ClipstreamView: View {
         }
     }
     
-    // MARK: - Inspector Pane (Right Column)
     @ViewBuilder
     private var inspectorView: some View {
         if let item = activeInspectorItem {
@@ -247,8 +224,6 @@ public struct ClipstreamView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
-    
-    // MARK: - Inspectors by Type
     
     private func codeInspectorView(_ item: ClipItem) -> some View {
         SyntaxHighlighterView(
@@ -310,7 +285,6 @@ public struct ClipstreamView: View {
     private func colorInspectorView(_ item: ClipItem) -> some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 14) {
-                // Color Swatch Block
                 RoundedRectangle(cornerRadius: 12)
                     .fill(Color(hexOrFallback: item.rawContent))
                     .frame(width: 64, height: 64)
@@ -364,7 +338,6 @@ public struct ClipstreamView: View {
             .background(Color.primary.opacity(0.03))
             .cornerRadius(8)
             
-            // Stats footer
             HStack {
                 Text("\(item.wordCount) words • \(item.charCount) characters")
                     .font(.system(size: 11, design: .monospaced))
@@ -378,8 +351,7 @@ public struct ClipstreamView: View {
         }
     }
     
-    // MARK: - Actions & Helpers
-    
+    @MainActor
     private func pasteItem(_ item: ClipItem) {
         AutoPaster.paste(text: item.rawContent, hideWindowHandler: onDismiss)
     }
@@ -423,7 +395,6 @@ public struct ClipstreamView: View {
     }
 }
 
-// Visual effect helper
 public struct VisualEffectBackground: NSViewRepresentable {
     public var material: NSVisualEffectView.Material
     public var blendingMode: NSVisualEffectView.BlendingMode
@@ -442,7 +413,6 @@ public struct VisualEffectBackground: NSViewRepresentable {
     }
 }
 
-// Color hex parser extension
 extension Color {
     init(hexOrFallback: String) {
         var hex = hexOrFallback.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()

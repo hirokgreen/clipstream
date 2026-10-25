@@ -1,5 +1,5 @@
 import Foundation
-import SwiftData
+import Combine
 
 /// The detected semantic type of a clipboard item.
 public enum ClipContentType: String, Codable, CaseIterable {
@@ -10,9 +10,8 @@ public enum ClipContentType: String, Codable, CaseIterable {
 }
 
 /// Represents a single history item recorded by Clipstream.
-@Model
-public final class ClipItem {
-    @Attribute(.unique) public var id: UUID
+public final class ClipItem: Identifiable, Codable, ObservableObject {
+    public let id: UUID
     public var rawContent: String
     public var contentTypeRaw: String
     public var detectedLanguage: String?
@@ -22,7 +21,6 @@ public final class ClipItem {
     public var wordCount: Int
     public var charCount: Int
     
-    // Computed property for strongly typed content categorization
     public var contentType: ClipContentType {
         get { ClipContentType(rawValue: contentTypeRaw) ?? .text }
         set { contentTypeRaw = newValue.rawValue }
@@ -49,7 +47,6 @@ public final class ClipItem {
         if let title = title, !title.isEmpty {
             self.title = title
         } else {
-            // First line or truncated preview
             let firstLine = rawContent.components(separatedBy: .newlines).first?.trimmingCharacters(in: .whitespaces) ?? ""
             self.title = firstLine.isEmpty ? "Empty Snippet" : String(firstLine.prefix(60))
         }

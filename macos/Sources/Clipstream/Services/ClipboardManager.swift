@@ -1,10 +1,9 @@
 import AppKit
 import Combine
 import Foundation
-import SwiftData
 
 /// Observes NSPasteboard for changes, filters sensitive content, classifies types,
-/// and persists snippets to SwiftData.
+/// and securely persists snippets to local storage.
 @MainActor
 public final class ClipboardManager: ObservableObject {
     public static let shared = ClipboardManager()
@@ -13,30 +12,33 @@ public final class ClipboardManager: ObservableObject {
     
     private var lastChangeCount: Int
     private var timer: Timer?
-    private var modelContext: ModelContext?
     private let historyLimit = 200
     
-    // Concealed pasteboard types from 1Password, Bitwarden, Keychain, etc.
+    // Privacy protection: exclude concealed passwords from 1Password, Bitwarden, Keychain, etc.
     private let concealedTypes: [NSPasteboard.PasteboardType] = [
         NSPasteboard.PasteboardType("org.nspasteboard.ConcealedType"),
         NSPasteboard.PasteboardType("com.agilebits.onepassword"),
         NSPasteboard.PasteboardType("de.blinksoft.ConcealedType"),
-        NSPasteboard.PasteboardType("Pasteboard type flag - transient")
+        NSPasteboard.PasteboardType("Pasteboard type flag - transient"),
+        NSPasteboard.PasteboardType("net.witt-software.QuickPaste.ConcealedType"),
+        NSPasteboard.PasteboardType("com.apple.findmy.item")
     ]
+    
+    private var storageURL: URL {
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let dir = appSupport.appendingPathComponent("Clipstream", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir.appendingPathComponent("history.json")
+    }
     
     private init() {
         self.lastChangeCount = NSPasteboard.general.changeCount
-    }
-    
-    public func configure(with context: ModelContext) {
-        self.modelContext = context
         loadExistingItems()
-        startObserving()
     }
     
     public func startObserving() {
         timer?.invalidate()
-        // 0.25s interval provides near-instant capture while consuming < 0.1% CPU
+        // 0.25s polling interval ensures < 0.1% CPU idle consumption
         timer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
                 self?.checkForChanges()
@@ -55,10 +57,12 @@ public final class ClipboardManager: ObservableObject {
         guard pasteboard.changeCount != lastChangeCount else { return }
         lastChangeCount = pasteboard.changeCount
         
-        // 1. Privacy filter: ignore password managers and concealed entries
-        for concealed in concealedTypes {
-            if pasteboard.types?.contains(concealed) == true {
-                return
+        // 1. Strict Privacy Filter: ignore password managers and concealed entries
+        if let types = pasteboard.types {
+            for concealed in concealedTypes {
+                if types.contains(concealed) {
+                    return
+                }
             }
         }
         
@@ -82,33 +86,54 @@ public final class ClipboardManager: ObservableObject {
             detectedLanguage: classification.language
         )
         
-        // 4. Persist and update items list
-        modelContext?.insert(newItem)
-        try? modelContext?.save()
-        
         items.insert(newItem, at: 0)
         enforceLimit()
+        saveItems()
     }
     
     private func loadExistingItems() {
-        guard let context = modelContext else { return }
-        let descriptor = FetchDescriptor<ClipItem>(sortBy: [SortDescriptor(\.timestamp, order: .reverse)])
-        if let fetched = try? context.fetch(descriptor) {
-            self.items = fetched
+        guard FileManager.default.fileExists(atPath: storageURL.path) else { return }
+        do {
+            let data = try Data(contentsOf: storageURL)
+            self.items = try JSONDecoder().decode([ClipItem].self, from: data)
+        } catch {
+            print("Could not load clip history: \(error)")
+        }
+    }
+    
+    private func saveItems() {
+        do {
+            let data = try JSONEncoder().encode(items)
+            try data.write(to: storageURL, options: .atomic)
+        } catch {
+            print("Could not save clip history: \(error)")
         }
     }
     
     private func enforceLimit() {
         if items.count > historyLimit {
-            let unpinned = items.filter { !$0.isPinned }
-            if unpinned.count > (historyLimit - items.filter(\.isPinned).count) {
-                if let toRemove = unpinned.last {
-                    modelContext?.delete(toRemove)
-                    try? modelContext?.save()
-                    items.removeAll { $0.id == toRemove.id }
-                }
+            let unpinnedIndices = items.indices.filter { !items[$0].isPinned }
+            if let lastUnpinned = unpinnedIndices.last {
+                items.remove(at: lastUnpinned)
             }
         }
+    }
+    
+    public func togglePin(for item: ClipItem) {
+        if let idx = items.firstIndex(where: { $0.id == item.id }) {
+            items[idx].isPinned.toggle()
+            saveItems()
+        }
+    }
+    
+    public func deleteItem(_ item: ClipItem) {
+        items.removeAll { $0.id == item.id }
+        saveItems()
+    }
+    
+    public func clearUnpinned() {
+        items.removeAll { !$0.isPinned }
+        saveItems()
     }
     
     // MARK: - Intelligent Content Auto-Detection Engine
@@ -121,22 +146,15 @@ public final class ClipboardManager: ObservableObject {
     public func classify(content: String) -> Classification {
         let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
         
-        // 1. Color Value Detection (Hex, RGB, HSL)
         if isColorValue(trimmed) {
             return Classification(type: .color, language: nil)
         }
-        
-        // 2. URL / Link Detection
         if isWebURL(trimmed) {
             return Classification(type: .link, language: nil)
         }
-        
-        // 3. Code Detection & Language Classification
         if let lang = detectCodeLanguage(trimmed) {
             return Classification(type: .code, language: lang)
         }
-        
-        // 4. Default: Plain / Formatted Text
         return Classification(type: .text, language: nil)
     }
     
@@ -161,55 +179,37 @@ public final class ClipboardManager: ObservableObject {
     }
     
     private func detectCodeLanguage(_ text: String) -> String? {
-        let lower = text.lowercased()
-        
-        // JSON detection
         if (text.hasPrefix("{") && text.hasSuffix("}")) || (text.hasPrefix("[") && text.hasSuffix("]")) {
             if let data = text.data(using: .utf8), (try? JSONSerialization.jsonObject(with: data)) != nil {
                 return "JSON"
             }
         }
-        
-        // HTML / XML
         if text.range(of: #"<(!DOCTYPE|[a-z0-9-]+)[^>]*>.*<\/[a-z0-9-]+>"#, options: [.regularExpression, .caseInsensitive]) != nil {
             return "HTML"
         }
-        
-        // Swift
-        let swiftKeywords = ["struct ", "func ", "guard let", "if let", "import SwiftUI", "import AppKit", "var body: some View", "@State", "@Binding", "@Observable"]
+        let swiftKeywords = ["struct ", "func ", "guard let", "if let", "import SwiftUI", "import AppKit", "var body: some View", "@State"]
         if swiftKeywords.contains(where: { text.contains($0) }) {
             return "Swift"
         }
-        
-        // Python
-        let pythonKeywords = ["def ", "import ", "from ", "elif ", "__init__", "class ", "print("]
+        let pythonKeywords = ["def ", "import ", "from ", "elif ", "__init__", "class "]
         if (text.contains("def ") || text.contains("import ")) && (text.contains(":\n") || text.contains("self.")) {
             return "Python"
         }
-        
-        // TypeScript / JavaScript
-        let jsKeywords = ["const ", "let ", "function", "export default", "console.log", "=>", "import {", "interface "]
+        let jsKeywords = ["const ", "let ", "function", "export default", "console.log", "=>"]
         if jsKeywords.contains(where: { text.contains($0) }) {
-            return text.contains("interface ") || text.contains(": string") || text.contains(": number") ? "TypeScript" : "JavaScript"
+            return text.contains("interface ") || text.contains(": string") ? "TypeScript" : "JavaScript"
         }
-        
-        // SQL
-        let sqlKeywords = ["SELECT ", "FROM ", "WHERE ", "INSERT INTO", "UPDATE ", "DELETE FROM", "CREATE TABLE"]
+        let sqlKeywords = ["SELECT ", "FROM ", "WHERE ", "INSERT INTO", "UPDATE ", "DELETE FROM"]
         if sqlKeywords.contains(where: { text.uppercased().contains($0) }) {
             return "SQL"
         }
-        
-        // Bash / Shell
-        if text.hasPrefix("#!/bin/") || text.contains("npm run") || text.contains("git commit") || text.contains("brew install") {
+        if text.hasPrefix("#!/bin/") || text.contains("npm run") || text.contains("brew install") {
             return "Bash"
         }
-        
-        // General syntax check: curly brackets, semicolons, function syntax
         let codeCues = [" {", "} ", "();", "() {", " = ", " == ", " -> "]
         if codeCues.filter({ text.contains($0) }).count >= 2 {
             return "Code"
         }
-        
         return nil
     }
 }

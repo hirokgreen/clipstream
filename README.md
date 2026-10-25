@@ -2,7 +2,7 @@
 
 > **The hyper-polished, native clipboard manager for macOS Sonoma & Sequoia.**
 
-Inspired by [Maccy](https://maccy.app/), **Clipstream** is built using **Swift, SwiftUI, and AppKit**. It runs as an unobtrusive menu-bar resident agent with a floating Spotlight-style HUD overlay summoned at `⌘ + ⇧ + V`.
+**Clipstream** is built using **Swift, SwiftUI, and AppKit**. It runs as an unobtrusive menu-bar resident agent with a floating Spotlight-style HUD overlay summoned at `⌘ + ⇧ + V`.
 
 ---
 

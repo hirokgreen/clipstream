@@ -1,20 +1,9 @@
 import SwiftUI
-import SwiftData
 import AppKit
 
 @main
 struct ClipstreamApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([ClipItem.self])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
     
     var body: some Scene {
         Settings {
@@ -28,6 +17,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     var hudWindow: NSPanel?
     
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Start background clipboard observer
+        ClipboardManager.shared.startObserving()
+        
         // Configure menu bar item
         setupStatusItem()
         
