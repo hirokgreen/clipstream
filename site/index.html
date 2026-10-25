@@ -313,8 +313,21 @@ public final class ClipboardManager: ObservableObject {
           </button>
         </div>
 
-        <div style="font-size: 12px; color: var(--text-muted); font-family: var(--font-mono);">
+        <div style="font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); margin-bottom: 16px;">
           Universal Binary • 2.3 MB • MIT License • No Telemetry
+        </div>
+
+        <div style="padding: 12px 18px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; font-size: 13px; color: var(--text-secondary); max-width: 580px; margin: 0 auto; line-height: 1.5; text-align: left;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px; color: var(--text-primary); font-weight: 600;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            First time opening on macOS?
+          </div>
+          Right-click (or <kbd>Control</kbd>-click) <code>Clipstream.app</code> &rarr; click <strong>Open</strong> &rarr; confirm <strong>Open</strong>.<br>
+          <span style="font-size: 11px; color: var(--text-muted);">Alternatively, go to <em>System Settings &gt; Privacy &amp; Security</em> and click <em>"Open Anyway"</em>.</span>
         </div>
       </div>
     </section>
