@@ -1,27 +1,9 @@
 import SwiftUI
 import AppKit
 
+/// Pure AppKit application entry point for a true menu-bar resident agent (LSUIElement = true).
+/// This prevents SwiftUI from opening any empty Settings or WindowGroup windows on launch.
 @main
-struct ClipstreamApp: App {
-    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    
-    var body: some Scene {
-        Settings {
-            EmptyView()
-        }
-    }
-}
-
-/// Custom floating panel for the HUD overlay
-final class HUDPanel: NSPanel {
-    override var canBecomeKey: Bool { true }
-    override var canBecomeMain: Bool { true }
-    
-    override func cancelOperation(_ sender: Any?) {
-        AppDelegate.shared?.hideHUD()
-    }
-}
-
 final class AppDelegate: NSObject, NSApplicationDelegate {
     static weak var shared: AppDelegate?
     
@@ -32,12 +14,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var outsideClickMonitor: Any?
     private var localKeyMonitor: Any?
     
+    static func main() {
+        let app = NSApplication.shared
+        let delegate = AppDelegate()
+        app.delegate = delegate
+        _ = NSApplicationMain(CommandLine.argc, CommandLine.unsafeArgv)
+    }
+    
     override init() {
         super.init()
         AppDelegate.shared = self
     }
     
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Close any phantom windows if created
+        for window in NSApp.windows {
+            if window !== hudWindow {
+                window.close()
+            }
+        }
+        
         // Start background clipboard observer
         ClipboardManager.shared.startObserving()
         
@@ -111,7 +107,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     func showHUD() {
-        // Record previously focused application
         let frontApp = NSWorkspace.shared.frontmostApplication
         if frontApp?.bundleIdentifier != Bundle.main.bundleIdentifier {
             previousApp = frontApp
@@ -153,7 +148,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hudWindow?.orderOut(nil)
         NSApp.hide(nil)
         
-        // Restore focus to previously active application
         if let prev = previousApp {
             prev.activate()
         }
@@ -220,5 +214,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSEvent.removeMonitor(monitor)
             localKeyMonitor = nil
         }
+    }
+}
+
+/// Custom floating panel for the HUD overlay
+final class HUDPanel: NSPanel {
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { true }
+    
+    override func cancelOperation(_ sender: Any?) {
+        AppDelegate.shared?.hideHUD()
     }
 }
