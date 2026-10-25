@@ -112,6 +112,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             previousApp = frontApp
         }
         
+        // Notify view that window is about to appear, resetting selection to top item
+        NotificationCenter.default.post(name: Notification.Name("clipstreamWindowWillShow"), object: nil)
+        
         if hudWindow == nil {
             let panel = HUDPanel(
                 contentRect: NSRect(x: 0, y: 0, width: 720, height: 460),

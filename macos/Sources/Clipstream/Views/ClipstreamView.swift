@@ -6,6 +6,7 @@ extension Notification.Name {
     static let clipstreamNavigateDown = Notification.Name("clipstreamNavigateDown")
     static let clipstreamPasteSelected = Notification.Name("clipstreamPasteSelected")
     static let clipstreamQuickPaste = Notification.Name("clipstreamQuickPaste")
+    static let clipstreamWindowWillShow = Notification.Name("clipstreamWindowWillShow")
 }
 
 /// The primary floating HUD window view for Clipstream (720x460pt) featuring
@@ -95,7 +96,21 @@ public struct ClipstreamView: View {
         )
         .shadow(color: Color.black.opacity(0.25), radius: 30, x: 0, y: 15)
         .onAppear {
-            syncInitialSelection()
+            resetToTopItem()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .clipstreamWindowWillShow)) { _ in
+            resetToTopItem()
+        }
+        .onChange(of: clipboardManager.items.first?.id) { _, newFirstId in
+            if searchText.isEmpty && selectedFilter == .all {
+                selectedItemId = newFirstId
+            }
+        }
+        .onChange(of: searchText) { _, _ in
+            selectedItemId = filteredItems.first?.id
+        }
+        .onChange(of: selectedFilter) { _, _ in
+            selectedItemId = filteredItems.first?.id
         }
         .onReceive(NotificationCenter.default.publisher(for: .clipstreamNavigateUp)) { _ in
             navigateSelection(by: -1)
@@ -115,10 +130,15 @@ public struct ClipstreamView: View {
         }
     }
     
+    private func resetToTopItem() {
+        searchText = ""
+        selectedFilter = .all
+        hoveredItemId = nil
+        selectedItemId = filteredItems.first?.id
+    }
+    
     private func syncInitialSelection() {
-        if selectedItemId == nil, let first = filteredItems.first {
-            selectedItemId = first.id
-        }
+        resetToTopItem()
     }
     
     private func navigateSelection(by delta: Int) {
