@@ -64,10 +64,10 @@ public struct ClipstreamView: View {
     }
     
     private var activeInspectorItem: ClipItem? {
-        if let hovered = hoveredItemId, let item = clipboardManager.items.first(where: { $0.id == hovered }) {
+        if let hovered = hoveredItemId, let item = filteredItems.first(where: { $0.id == hovered }) {
             return item
         }
-        if let selected = selectedItemId, let item = clipboardManager.items.first(where: { $0.id == selected }) {
+        if let selected = selectedItemId, let item = filteredItems.first(where: { $0.id == selected }) {
             return item
         }
         return filteredItems.first
@@ -110,6 +110,7 @@ public struct ClipstreamView: View {
             selectedItemId = filteredItems.first?.id
         }
         .onChange(of: selectedFilter) { _, _ in
+            hoveredItemId = nil
             selectedItemId = filteredItems.first?.id
         }
         .onReceive(NotificationCenter.default.publisher(for: .clipstreamNavigateUp)) { _ in
@@ -137,10 +138,6 @@ public struct ClipstreamView: View {
         selectedItemId = filteredItems.first?.id
     }
     
-    private func syncInitialSelection() {
-        resetToTopItem()
-    }
-    
     private func navigateSelection(by delta: Int) {
         guard !filteredItems.isEmpty else { return }
         let currentIdx = filteredItems.firstIndex(where: { $0.id == selectedItemId }) ?? 0
@@ -149,7 +146,7 @@ public struct ClipstreamView: View {
     }
     
     private var topBarView: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 10) {
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(.secondary)
@@ -173,17 +170,15 @@ public struct ClipstreamView: View {
             .background(Color.primary.opacity(0.05))
             .cornerRadius(8)
             
-            HStack(spacing: 4) {
+            HStack(spacing: 3) {
                 ForEach(FilterCategory.allCases, id: \.self) { cat in
                     Button(action: {
                         selectedFilter = cat
-                        DispatchQueue.main.async {
-                            syncInitialSelection()
-                        }
+                        hoveredItemId = nil
                     }) {
                         Text(cat.rawValue)
                             .font(.system(size: 11, weight: selectedFilter == cat ? .semibold : .regular))
-                            .padding(.horizontal, 9)
+                            .padding(.horizontal, 8)
                             .padding(.vertical, 4)
                             .background(
                                 selectedFilter == cat ? Color.accentColor : Color.primary.opacity(0.04)
@@ -194,9 +189,45 @@ public struct ClipstreamView: View {
                     .buttonStyle(.plain)
                 }
             }
+            
+            Menu {
+                Button(action: {
+                    clipboardManager.clearUnpinned()
+                }) {
+                    Label("Clear Unpinned History", systemImage: "trash")
+                }
+                
+                Divider()
+                
+                Button(action: {
+                    if let url = URL(string: "https://clipstream.sysnode.cloud") {
+                        NSWorkspace.shared.open(url)
+                    }
+                }) {
+                    Label("Website & Documentation", systemImage: "globe")
+                }
+                
+                Divider()
+                
+                Button(action: {
+                    NSApplication.shared.terminate(nil)
+                }) {
+                    Label("Quit Clipstream", systemImage: "power")
+                }
+            } label: {
+                Image(systemName: "gearshape")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.secondary)
+                    .frame(width: 26, height: 26)
+                    .background(Color.primary.opacity(0.05))
+                    .cornerRadius(6)
+            }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .help("Clipstream Options")
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
     }
     
     private var historyListView: some View {
@@ -227,11 +258,15 @@ public struct ClipstreamView: View {
                             
                             Spacer()
                             
-                            if item.isPinned {
-                                Image(systemName: "pin.fill")
-                                    .font(.system(size: 9))
-                                    .foregroundColor(isSelected ? .white : .orange)
+                            Button(action: {
+                                clipboardManager.togglePin(for: item)
+                            }) {
+                                Image(systemName: item.isPinned ? "pin.fill" : "pin")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(item.isPinned ? (isSelected ? .white : .orange) : (isSelected ? .white.opacity(0.8) : .secondary.opacity(0.6)))
                             }
+                            .buttonStyle(.plain)
+                            .opacity(item.isPinned || isSelected ? 1 : 0)
                         }
                         .id(item.id)
                         .padding(.horizontal, 10)
@@ -241,6 +276,23 @@ public struct ClipstreamView: View {
                                 .fill(isSelected ? Color.accentColor : Color.clear)
                         )
                         .contentShape(Rectangle())
+                        .contextMenu {
+                            Button(action: { pasteItem(item) }) {
+                                Label("Paste", systemImage: "doc.on.clipboard")
+                            }
+                            Button(action: { clipboardManager.togglePin(for: item) }) {
+                                Label(item.isPinned ? "Unpin Snippet" : "Pin Snippet", systemImage: item.isPinned ? "pin.slash" : "pin")
+                            }
+                            Button(action: { copyText(item.rawContent) }) {
+                                Label("Copy to Clipboard", systemImage: "doc.on.doc")
+                            }
+                            Divider()
+                            Button(role: .destructive, action: {
+                                clipboardManager.deleteItem(item)
+                            }) {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
                         .onHover { isHovered in
                             withAnimation(.easeInOut(duration: 0.15)) {
                                 hoveredItemId = isHovered ? item.id : nil

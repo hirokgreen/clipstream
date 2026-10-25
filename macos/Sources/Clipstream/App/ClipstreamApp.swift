@@ -54,9 +54,62 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let button = statusItem?.button {
             button.image = createStatusBarLogoImage()
             button.imagePosition = .imageOnly
-            button.action = #selector(toggleHUD)
+            button.action = #selector(statusItemClicked(_:))
             button.target = self
+            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         }
+    }
+    
+    @objc private func statusItemClicked(_ sender: NSStatusBarButton) {
+        guard let event = NSApp.currentEvent else {
+            toggleHUD()
+            return
+        }
+        
+        if event.type == .rightMouseUp || event.modifierFlags.contains(.control) {
+            let menu = NSMenu()
+            
+            let openItem = NSMenuItem(title: "Open Clipstream", action: #selector(toggleHUD), keyEquivalent: "")
+            openItem.target = self
+            menu.addItem(openItem)
+            
+            menu.addItem(NSMenuItem.separator())
+            
+            let clearItem = NSMenuItem(title: "Clear Unpinned History", action: #selector(clearHistoryAction), keyEquivalent: "")
+            clearItem.target = self
+            menu.addItem(clearItem)
+            
+            let siteItem = NSMenuItem(title: "Website & Documentation", action: #selector(openWebsiteAction), keyEquivalent: "")
+            siteItem.target = self
+            menu.addItem(siteItem)
+            
+            menu.addItem(NSMenuItem.separator())
+            
+            let quitItem = NSMenuItem(title: "Quit Clipstream", action: #selector(quitAction), keyEquivalent: "q")
+            quitItem.target = self
+            menu.addItem(quitItem)
+            
+            menu.popUp(positioning: nil, at: NSPoint(x: 0, y: sender.bounds.height), in: sender)
+        } else {
+            toggleHUD()
+        }
+    }
+    
+    @MainActor
+    @objc private func clearHistoryAction() {
+        ClipboardManager.shared.clearUnpinned()
+    }
+    
+    @MainActor
+    @objc private func openWebsiteAction() {
+        if let url = URL(string: "https://clipstream.sysnode.cloud") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+    
+    @MainActor
+    @objc private func quitAction() {
+        NSApplication.shared.terminate(nil)
     }
     
     /// Generates a crisp vector status bar icon matching the Clipstream logo (clipboard + stream waves)
@@ -171,6 +224,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // 2. Local keyboard monitor: handle Esc, Up, Down, Enter, and ⌘ 1-9
         localKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self = self else { return event }
+            
+            // ⌘ + Q key: Quit Application
+            if event.modifierFlags.contains(.command),
+               let chars = event.charactersIgnoringModifiers,
+               chars.lowercased() == "q" {
+                NSApplication.shared.terminate(nil)
+                return nil
+            }
             
             // Esc key (53)
             if event.keyCode == 53 {
