@@ -104,6 +104,10 @@ body {
   letter-spacing: -0.02em;
 }
 
+.mobile-nav-toggle {
+  display: none;
+}
+
 .nav-links {
   display: flex;
   align-items: center;
@@ -837,6 +841,105 @@ kbd {
 
 /* Responsiveness */
 @media (max-width: 768px) {
+  .site-nav {
+    padding: 16px 0;
+    position: relative;
+  }
+
+  .mobile-nav-toggle {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.2s, border-color 0.2s;
+  }
+
+  .mobile-nav-toggle:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .hamburger-bar {
+    width: 18px;
+    height: 2px;
+    background: var(--text-primary);
+    border-radius: 2px;
+    transition: transform 0.25s ease, opacity 0.25s ease;
+  }
+
+  .mobile-nav-toggle.active .hamburger-bar:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+  }
+
+  .mobile-nav-toggle.active .hamburger-bar:nth-child(2) {
+    opacity: 0;
+  }
+
+  .mobile-nav-toggle.active .hamburger-bar:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+  }
+
+  .nav-links {
+    display: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    background: rgba(15, 23, 42, 0.96);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 14px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    padding: 12px;
+    z-index: 999;
+  }
+
+  .nav-links.open {
+    display: flex;
+    animation: navDropIn 0.2s ease-out forwards;
+  }
+
+  @keyframes navDropIn {
+    from {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .nav-link {
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 15px;
+    color: var(--text-primary);
+  }
+
+  .nav-link:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .nav-btn-gh {
+    justify-content: center;
+    margin-top: 6px;
+    padding: 10px 14px;
+    font-size: 14px;
+  }
+
   .hero-title {
     font-size: 38px;
   }

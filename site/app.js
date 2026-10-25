@@ -549,5 +549,31 @@ window.copyCurrentCodeTab = function() {
   });
 };
 
+// Mobile Navigation Toggle
+const mobileToggle = document.getElementById('mobileNavToggle');
+const navLinksEl = document.getElementById('navLinks');
+
+if (mobileToggle && navLinksEl) {
+  mobileToggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    mobileToggle.classList.toggle('active');
+    navLinksEl.classList.toggle('open');
+  });
+
+  navLinksEl.querySelectorAll('a').forEach(link => {
+    link.addEventListener('click', () => {
+      mobileToggle.classList.remove('active');
+      navLinksEl.classList.remove('open');
+    });
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!mobileToggle.contains(e.target) && !navLinksEl.contains(e.target)) {
+      mobileToggle.classList.remove('active');
+      navLinksEl.classList.remove('open');
+    }
+  });
+}
+
 // Initialize
 renderList();
