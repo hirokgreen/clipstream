@@ -3,14 +3,15 @@ import Combine
 import Foundation
 
 /// Observes NSPasteboard for changes, filters sensitive content, classifies types,
-/// and securely persists snippets to local storage.
+/// and securely persists snippets to local storage without duplicates.
 @MainActor
 public final class ClipboardManager: ObservableObject {
     public static let shared = ClipboardManager()
     
     @Published public var items: [ClipItem] = []
     
-    private var lastChangeCount: Int
+    public var isPasting: Bool = false
+    public var lastChangeCount: Int
     private var timer: Timer?
     private let historyLimit = 200
     
@@ -53,6 +54,9 @@ public final class ClipboardManager: ObservableObject {
     }
     
     private func checkForChanges() {
+        // Skip check if self-pasting to prevent duplicate entries
+        guard !isPasting else { return }
+        
         let pasteboard = NSPasteboard.general
         guard pasteboard.changeCount != lastChangeCount else { return }
         lastChangeCount = pasteboard.changeCount
@@ -72,12 +76,16 @@ public final class ClipboardManager: ObservableObject {
             return
         }
         
-        // Avoid duplicate of most recent item
-        if let first = items.first, first.rawContent == copiedString {
+        // 3. Deduplication: if an item with the same content already exists, move it to top
+        if let existingIdx = items.firstIndex(where: { $0.rawContent == copiedString }) {
+            let existing = items.remove(at: existingIdx)
+            existing.timestamp = Date()
+            items.insert(existing, at: 0)
+            saveItems()
             return
         }
         
-        // 3. Classify content
+        // 4. Classify and create new item
         let classification = classify(content: copiedString)
         
         let newItem = ClipItem(
@@ -89,6 +97,16 @@ public final class ClipboardManager: ObservableObject {
         items.insert(newItem, at: 0)
         enforceLimit()
         saveItems()
+    }
+    
+    /// Re-orders an existing item to the top of the history when pasted, avoiding duplicates.
+    public func recordPaste(item: ClipItem) {
+        if let idx = items.firstIndex(where: { $0.id == item.id }) {
+            let existing = items.remove(at: idx)
+            existing.timestamp = Date()
+            items.insert(existing, at: 0)
+            saveItems()
+        }
     }
     
     private func loadExistingItems() {
@@ -136,7 +154,7 @@ public final class ClipboardManager: ObservableObject {
         saveItems()
     }
     
-    // MARK: - Intelligent Content Auto-Detection Engine
+    // MARK: - Content Classifier
     
     public struct Classification {
         public let type: ClipContentType
@@ -191,7 +209,6 @@ public final class ClipboardManager: ObservableObject {
         if swiftKeywords.contains(where: { text.contains($0) }) {
             return "Swift"
         }
-        let pythonKeywords = ["def ", "import ", "from ", "elif ", "__init__", "class "]
         if (text.contains("def ") || text.contains("import ")) && (text.contains(":\n") || text.contains("self.")) {
             return "Python"
         }

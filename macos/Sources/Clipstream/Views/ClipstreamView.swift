@@ -1,5 +1,13 @@
 import SwiftUI
 
+/// Notification definitions for global keyboard events inside HUD
+extension Notification.Name {
+    static let clipstreamNavigateUp = Notification.Name("clipstreamNavigateUp")
+    static let clipstreamNavigateDown = Notification.Name("clipstreamNavigateDown")
+    static let clipstreamPasteSelected = Notification.Name("clipstreamPasteSelected")
+    static let clipstreamQuickPaste = Notification.Name("clipstreamQuickPaste")
+}
+
 /// The primary floating HUD window view for Clipstream (720x460pt) featuring
 /// a quick search bar, category filter pills, 40/60 split list and live inspector pane.
 public struct ClipstreamView: View {
@@ -87,10 +95,37 @@ public struct ClipstreamView: View {
         )
         .shadow(color: Color.black.opacity(0.25), radius: 30, x: 0, y: 15)
         .onAppear {
-            if selectedItemId == nil, let first = filteredItems.first {
-                selectedItemId = first.id
+            syncInitialSelection()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .clipstreamNavigateUp)) { _ in
+            navigateSelection(by: -1)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .clipstreamNavigateDown)) { _ in
+            navigateSelection(by: 1)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .clipstreamPasteSelected)) { _ in
+            if let item = activeInspectorItem {
+                pasteItem(item)
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .clipstreamQuickPaste)) { note in
+            if let index = note.object as? Int, index < filteredItems.count {
+                pasteItem(filteredItems[index])
+            }
+        }
+    }
+    
+    private func syncInitialSelection() {
+        if selectedItemId == nil, let first = filteredItems.first {
+            selectedItemId = first.id
+        }
+    }
+    
+    private func navigateSelection(by delta: Int) {
+        guard !filteredItems.isEmpty else { return }
+        let currentIdx = filteredItems.firstIndex(where: { $0.id == selectedItemId }) ?? 0
+        let nextIdx = max(0, min(filteredItems.count - 1, currentIdx + delta))
+        selectedItemId = filteredItems[nextIdx].id
     }
     
     private var topBarView: some View {
@@ -120,7 +155,12 @@ public struct ClipstreamView: View {
             
             HStack(spacing: 4) {
                 ForEach(FilterCategory.allCases, id: \.self) { cat in
-                    Button(action: { selectedFilter = cat }) {
+                    Button(action: {
+                        selectedFilter = cat
+                        DispatchQueue.main.async {
+                            syncInitialSelection()
+                        }
+                    }) {
                         Text(cat.rawValue)
                             .font(.system(size: 11, weight: selectedFilter == cat ? .semibold : .regular))
                             .padding(.horizontal, 9)
@@ -140,57 +180,67 @@ public struct ClipstreamView: View {
     }
     
     private var historyListView: some View {
-        ScrollView {
-            LazyVStack(spacing: 2) {
-                ForEach(Array(filteredItems.enumerated()), id: \.element.id) { index, item in
-                    let isSelected = (item.id == (hoveredItemId ?? selectedItemId))
-                    
-                    HStack(spacing: 8) {
-                        if index < 9 {
-                            Text("\(index + 1)")
-                                .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                .foregroundColor(isSelected ? .white.opacity(0.8) : .secondary)
-                                .frame(width: 14)
-                        } else {
-                            Spacer().frame(width: 14)
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: 2) {
+                    ForEach(Array(filteredItems.enumerated()), id: \.element.id) { index, item in
+                        let isSelected = (item.id == (hoveredItemId ?? selectedItemId))
+                        
+                        HStack(spacing: 8) {
+                            if index < 9 {
+                                Text("\(index + 1)")
+                                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                    .foregroundColor(isSelected ? .white.opacity(0.8) : .secondary)
+                                    .frame(width: 14)
+                            } else {
+                                Spacer().frame(width: 14)
+                            }
+                            
+                            typeIcon(for: item.contentType)
+                                .foregroundColor(isSelected ? .white : iconColor(for: item.contentType))
+                                .frame(width: 16)
+                            
+                            Text(item.title)
+                                .font(.system(size: 12, weight: .regular))
+                                .lineLimit(1)
+                                .foregroundColor(isSelected ? .white : .primary)
+                            
+                            Spacer()
+                            
+                            if item.isPinned {
+                                Image(systemName: "pin.fill")
+                                    .font(.system(size: 9))
+                                    .foregroundColor(isSelected ? .white : .orange)
+                            }
                         }
-                        
-                        typeIcon(for: item.contentType)
-                            .foregroundColor(isSelected ? .white : iconColor(for: item.contentType))
-                            .frame(width: 16)
-                        
-                        Text(item.title)
-                            .font(.system(size: 12, weight: .regular))
-                            .lineLimit(1)
-                            .foregroundColor(isSelected ? .white : .primary)
-                        
-                        Spacer()
-                        
-                        if item.isPinned {
-                            Image(systemName: "pin.fill")
-                                .font(.system(size: 9))
-                                .foregroundColor(isSelected ? .white : .orange)
+                        .id(item.id)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 7)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .fill(isSelected ? Color.accentColor : Color.clear)
+                        )
+                        .contentShape(Rectangle())
+                        .onHover { isHovered in
+                            withAnimation(.easeInOut(duration: 0.15)) {
+                                hoveredItemId = isHovered ? item.id : nil
+                            }
+                        }
+                        .onTapGesture {
+                            selectedItemId = item.id
+                            pasteItem(item)
                         }
                     }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 7)
-                    .background(
-                        RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            .fill(isSelected ? Color.accentColor : Color.clear)
-                    )
-                    .contentShape(Rectangle())
-                    .onHover { isHovered in
-                        withAnimation(.easeInOut(duration: 0.15)) {
-                            hoveredItemId = isHovered ? item.id : nil
-                        }
-                    }
-                    .onTapGesture {
-                        selectedItemId = item.id
-                        pasteItem(item)
+                }
+                .padding(8)
+            }
+            .onChange(of: selectedItemId) { _, newId in
+                if let newId = newId {
+                    withAnimation {
+                        proxy.scrollTo(newId, anchor: .center)
                     }
                 }
             }
-            .padding(8)
         }
     }
     
@@ -353,7 +403,7 @@ public struct ClipstreamView: View {
     
     @MainActor
     private func pasteItem(_ item: ClipItem) {
-        AutoPaster.paste(text: item.rawContent, hideWindowHandler: onDismiss)
+        AutoPaster.paste(item: item, hideWindowHandler: onDismiss)
     }
     
     private func copyText(_ text: String) {
