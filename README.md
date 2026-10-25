@@ -42,39 +42,6 @@ clipstream/
 └── README.md
 ```
 
----
-
-## Subdomain & DNS Configuration
-
-* **Subdomain:** [`clipstream.sysnode.cloud`](https://clipstream.sysnode.cloud)
-* **Authoritative DNS (Hostinger):**
-  * `A` Record: `clipstream` $\rightarrow$ `201.18.215.21` (TTL: 300)
-  * `AAAA` Record: `clipstream` $\rightarrow$ `2a02:4780:5e:c78a::1` (TTL: 300)
-
----
-
-## Developing the Static Site
-
-To preview the website locally:
-
-```bash
-cd site
-python3 -m http.server 8000
-# Open http://localhost:8000
-```
-
-### Deploying the Site to VPS (`201.18.215.21`)
-
-Using Docker Compose:
-```bash
-cd site
-docker compose up -d
-```
-
-Or copy `site/` contents directly to `/var/www/clipstream` with Nginx.
-
----
-
 ## Developing the macOS App
 
 To build or open the macOS application:
