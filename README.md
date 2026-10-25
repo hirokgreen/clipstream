@@ -52,3 +52,16 @@ open Package.swift # Opens directly in Xcode
 # or build via command line:
 swift build
 ```
+
+To package a standalone `.dmg` installer:
+
+```bash
+./scripts/package_dmg.sh
+```
+
+---
+
+## License
+
+This project is open source and available under the [MIT License](LICENSE).
+Copyright © 2026 Hirok Biswas.
