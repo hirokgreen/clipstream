@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clipstream — The Native Clipboard Manager for macOS</title>
+  <meta name="description" content="A hyper-polished, native macOS clipboard manager built with Swift, SwiftUI, and AppKit. Fluid 120Hz ProMotion, keyboard-first, and zero bloat.">
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Ambient Background Glows -->
+  <div class="ambient-glow-1"></div>
+  <div class="ambient-glow-2"></div>
+
+  <div class="container">
+    <!-- Navigation -->
+    <header class="site-nav">
+      <a href="#" class="brand-badge">
+        <img src="assets/logo.svg" alt="Clipstream Logo" class="brand-logo-img">
+        <span class="brand-name">Clipstream</span>
+      </a>
+
+      <nav class="nav-links">
+        <a href="#demo" class="nav-link">Interactive HUD</a>
+        <a href="#features" class="nav-link">Features</a>
+        <a href="#shortcuts" class="nav-link">Shortcuts</a>
+        <a href="#architecture" class="nav-link">Swift Architecture</a>
+        <a href="https://github.com/clipstream/macos" target="_blank" class="nav-btn-gh">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+          </svg>
+          GitHub
+        </a>
+      </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+      <div class="hero-pill">
+        <span>macOS Sonoma &amp; Sequoia Native</span>
+        <span>•</span>
+        <span>Swift &amp; AppKit</span>
+      </div>
+
+      <h1 class="hero-title">The Clipboard Manager<br>Crafted for Speed.</h1>
+      
+      <p class="hero-subtitle">
+        Clipstream lives unobtrusively in your menu bar and summons instantly at your fingertips with a 120Hz ProMotion HUD. Strictly keyboard-first, intelligent syntax auto-detection, and zero bloat.
+      </p>
+
+      <div class="hero-cta-group">
+        <a href="#download" class="btn-primary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.61-.75 1.04-1.8 1.01-2.87-.96.04-2.1.65-2.77 1.43-.59.68-1.11 1.76-1.01 2.81 1.07.08 2.15-.55 2.77-1.37z"/>
+          </svg>
+          Download Clipstream (DMG)
+        </a>
+
+        <div class="brew-pill" onclick="copyBrewCommand()" title="Click to copy command">
+          <code>brew install --cask clipstream</code>
+          <svg class="copy-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+        </div>
+      </div>
+
+      <div class="hotkey-badge">
+        <span>Global Activation:</span>
+        <kbd>⌘</kbd>
+        <kbd>⇧</kbd>
+        <kbd>V</kbd>
+        <span style="margin-left: 8px;">•</span>
+        <span style="margin-left: 8px;">Dismiss: <kbd>Esc</kbd></span>
+      </div>
+    </section>
+
+    <!-- Interactive HUD Simulator -->
+    <section class="hud-showcase" id="demo">
+      <div class="hud-caption-bar">
+        <span class="hud-badge-tag">Interactive macOS HUD Overlay (Live Playground)</span>
+        <span class="hud-tip">Tip: Use <kbd>↑</kbd> <kbd>↓</kbd> or <kbd>1</kbd>–<kbd>9</kbd> to test keyboard navigation</span>
+      </div>
+
+      <!-- 720x460pt Spotlight-Style HUD Window -->
+      <div class="hud-window">
+        <!-- Top Bar: Search + Category Pills -->
+        <div class="hud-topbar">
+          <div class="hud-search-box">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="hudSearchInput" placeholder="Search snippets, links, code..." autocomplete="off">
+          </div>
+
+          <div class="hud-pills">
+            <button class="hud-pill active" data-filter="all">All</button>
+            <button class="hud-pill" data-filter="code">Code</button>
+            <button class="hud-pill" data-filter="links">Links</button>
+            <button class="hud-pill" data-filter="text">Text</button>
+            <button class="hud-pill" data-filter="pinned">Pinned</button>
+          </div>
+        </div>
+
+        <!-- HUD Body Split (40% List / 60% Inspector) -->
+        <div class="hud-body">
+          <!-- Left Column (40%) -->
+          <div class="hud-list-col" id="hudList">
+            <!-- Dynamically populated by app.js -->
+          </div>
+
+          <!-- Right Column (60% Dynamic Inspector) -->
+          <div class="hud-inspector-col" id="hudInspector">
+            <!-- Dynamically populated by app.js -->
+          </div>
+        </div>
+
+        <!-- Floating HUD Toast -->
+        <div class="toast-hud" id="toastHud">Copied clean code to clipboard!</div>
+      </div>
+    </section>
+
+    <!-- Core Feature Grid -->
+    <section class="features-section" id="features">
+      <div class="section-title-wrap">
+        <div class="section-label">Engineering Philosophy</div>
+        <h2 class="section-title">Designed for Power Users</h2>
+        <p class="section-desc">Zero background baggage. Every pixel and millisecond is optimized to match official Apple system utilities.</p>
+      </div>
+
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="card-icon">⚡️</div>
+          <h3 class="card-title">120Hz ProMotion Native</h3>
+          <p class="card-desc">Built 100% in pure Swift, SwiftUI, and AppKit. No Electron, no Chromium overhead. Idle CPU usage stays strictly under 0.1% with instantaneous responsiveness.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-icon">🧠</div>
+          <h3 class="card-title">Smart Content Classifier</h3>
+          <p class="card-desc">Automatically classifies clipboard items into Code, Web Links, Hex/RGB Colors, and Rich Text with syntax highlighting, line gutter numbers, and metadata badges.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-icon">🔒</div>
+          <h3 class="card-title">Zero-Knowledge Privacy</h3>
+          <p class="card-desc">Concealed passwords copied from 1Password, Bitwarden, or Apple Keychain are automatically filtered out. All clipboard history stays 100% local on your Mac.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-icon">⌨️</div>
+          <h3 class="card-title">Strictly Keyboard-First</h3>
+          <p class="card-desc">Every action can be triggered without lifting your hands off the keyboard: instant 1–9 paste numbers, J/K arrow traversal, Cmd + P pinning, and auto-paste simulation.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-icon">🎨</div>
+          <h3 class="card-title">Continuous Glassmorphism</h3>
+          <p class="card-desc">Uses native macOS NSVisualEffectView with .behindWindow blending and .hudWindow material. Continuous curvature 18pt corners seamlessly match macOS Sonoma & Sequoia.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="card-icon">🗄️</div>
+          <h3 class="card-title">SwiftData Persistence</h3>
+          <p class="card-desc">Modern SwiftData backing store preserves your pinned and unpinned clips with configurable history limits and sub-millisecond retrieval speeds.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Keyboard Shortcuts Reference -->
+    <section class="shortcuts-section" id="shortcuts">
+      <div class="section-title-wrap">
+        <div class="section-label">Keyboard Navigation</div>
+        <h2 class="section-title">Velocity at Your Fingertips</h2>
+        <p class="section-desc">Operate your entire clipboard history at lightning speed without touching the trackpad.</p>
+      </div>
+
+      <div class="shortcuts-box">
+        <table class="shortcuts-table">
+          <tbody>
+            <tr>
+              <td style="width: 220px;"><kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>V</kbd></td>
+              <td class="shortcut-action">Toggle Clipstream HUD</td>
+              <td class="shortcut-desc">Global hotkey summons or dismisses the floating window anywhere on macOS.</td>
+            </tr>
+            <tr>
+              <td><kbd>↑</kbd> <kbd>↓</kbd> or <kbd>J</kbd> <kbd>K</kbd></td>
+              <td class="shortcut-action">Navigate History Items</td>
+              <td class="shortcut-desc">Seamlessly traverses clips with instantaneous 150ms crossfade preview in the inspector.</td>
+            </tr>
+            <tr>
+              <td><kbd>1</kbd> through <kbd>9</kbd></td>
+              <td class="shortcut-action">Instant Quick Paste</td>
+              <td class="shortcut-desc">Directly pastes any of the first nine items into your active application.</td>
+            </tr>
+            <tr>
+              <td><kbd>↩ Return</kbd></td>
+              <td class="shortcut-action">Paste into Active App</td>
+              <td class="shortcut-desc">Copies selection and sends synthetic Command+V event via Accessibility CGEvent.</td>
+            </tr>
+            <tr>
+              <td><kbd>⌘</kbd> <kbd>C</kbd></td>
+              <td class="shortcut-action">Copy Without Pasting</td>
+              <td class="shortcut-desc">Refreshes system pasteboard with the selected snippet without closing the window.</td>
+            </tr>
+            <tr>
+              <td><kbd>⌘</kbd> <kbd>P</kbd></td>
+              <td class="shortcut-action">Pin / Unpin Snippet</td>
+              <td class="shortcut-desc">Pins important tokens, commands, or URLs permanently to the top of the list.</td>
+            </tr>
+            <tr>
+              <td><kbd>⌘</kbd> <kbd>⌫</kbd></td>
+              <td class="shortcut-action">Delete Selected Clip</td>
+              <td class="shortcut-desc">Removes snippet from SwiftData history storage.</td>
+            </tr>
+            <tr>
+              <td><kbd>Esc</kbd></td>
+              <td class="shortcut-action">Dismiss Window</td>
+              <td class="shortcut-desc">Instantly hides Clipstream HUD and restores focus to your previous workflow.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Swift Architecture Deliverables Explorer -->
+    <section class="code-section" id="architecture">
+      <div class="section-title-wrap">
+        <div class="section-label">Source Code &amp; Implementation</div>
+        <h2 class="section-title">Production Swift Architecture</h2>
+        <p class="section-desc">Explore the exact implementation deliverables that power Clipstream.</p>
+      </div>
+
+      <!-- Tab Buttons -->
+      <div class="code-tabs-nav">
+        <button class="code-tab-btn active" onclick="switchCodeTab('ClipboardManager.swift', this)">ClipboardManager.swift</button>
+        <button class="code-tab-btn" onclick="switchCodeTab('HotKeyManager.swift', this)">HotKeyManager.swift</button>
+        <button class="code-tab-btn" onclick="switchCodeTab('ClipItem.swift', this)">ClipItem.swift</button>
+        <button class="code-tab-btn" onclick="switchCodeTab('AutoPaster.swift', this)">AutoPaster.swift</button>
+        <button class="code-tab-btn" onclick="switchCodeTab('ClipstreamView.swift', this)">ClipstreamView.swift</button>
+        <button class="code-tab-btn" onclick="switchCodeTab('SyntaxHighlighter.swift', this)">SyntaxHighlighter.swift</button>
+      </div>
+
+      <!-- Code Viewer Block -->
+      <div class="code-block-container">
+        <div class="code-block-header">
+          <span id="codeTabFileName">ClipboardManager.swift</span>
+          <button class="btn-clean-copy" onclick="copyCurrentCodeTab()">Copy File Contents</button>
+        </div>
+        <pre class="code-block-content"><code id="codeTabBody">import AppKit
+import Combine
+import Foundation
+import SwiftData
+
+/// Observes NSPasteboard for changes, filters sensitive content, classifies types,
+/// and persists snippets to SwiftData.
+@MainActor
+public final class ClipboardManager: ObservableObject {
+    public static let shared = ClipboardManager()
+    
+    @Published public var items: [ClipItem] = []
+    private var lastChangeCount: Int
+    private var timer: Timer?
+    private var modelContext: ModelContext?
+    private let historyLimit = 200
+    
+    // Concealed pasteboard types from 1Password, Bitwarden, Keychain, etc.
+    private let concealedTypes: [NSPasteboard.PasteboardType] = [
+        NSPasteboard.PasteboardType("org.nspasteboard.ConcealedType"),
+        NSPasteboard.PasteboardType("com.agilebits.onepassword"),
+        NSPasteboard.PasteboardType("de.blinksoft.ConcealedType"),
+        NSPasteboard.PasteboardType("Pasteboard type flag - transient")
+    ]
+    
+    public func startObserving() {
+        // 0.25s interval provides instant capture with &lt; 0.1% CPU
+        timer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.checkForChanges()
+            }
+        }
+    }
+}</code></pre>
+      </div>
+    </section>
+
+    <!-- Download & Specs Section -->
+    <section class="download-section" id="download" style="text-align: center; padding: 40px 0 80px;">
+      <div style="background: linear-gradient(180deg, rgba(30, 27, 75, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 20px; padding: 48px 24px; max-width: 760px; margin: 0 auto;">
+        <img src="assets/app-icon.jpg" alt="Clipstream App Icon" style="width: 88px; height: 88px; border-radius: 20px; margin-bottom: 20px; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);">
+        <h2 style="font-size: 32px; font-weight: 800; margin-bottom: 12px;">Get Clipstream for Mac</h2>
+        <p style="color: var(--text-secondary); max-width: 520px; margin: 0 auto 28px; font-size: 15px;">
+          Compatible with macOS 14 Sonoma and macOS 15 Sequoia. Built natively as a Universal Binary for Apple Silicon (M1/M2/M3/M4) and Intel.
+        </p>
+
+        <div style="display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; margin-bottom: 24px;">
+          <a href="#" class="btn-primary" style="padding: 14px 28px; font-size: 16px;">
+            Download Clipstream v1.0.0 (.dmg)
+          </a>
+          <button class="brew-pill" onclick="copyBrewCommand()">
+            <code>brew install --cask clipstream</code>
+          </button>
+        </div>
+
+        <div style="font-size: 12px; color: var(--text-muted); font-family: var(--font-mono);">
+          Universal Binary • 3.8 MB • MIT License • No Telemetry
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+      <div class="footer-links">
+        <a href="#demo" class="footer-link">Live Demo</a>
+        <a href="#features" class="footer-link">Features</a>
+        <a href="#shortcuts" class="footer-link">Shortcuts</a>
+        <a href="#architecture" class="footer-link">Swift Code</a>
+        <a href="https://github.com/clipstream/macos" target="_blank" class="footer-link">GitHub</a>
+      </div>
+      <div>
+        Designed with inspiration from <a href="https://maccy.app/" target="_blank" style="color: var(--accent-cyan); text-decoration: none;">Maccy</a>. Built with Swift &amp; AppKit for macOS.
+      </div>
+      <div style="margin-top: 8px; color: rgba(255, 255, 255, 0.25);">
+        Hosted on <strong>clipstream.sysnode.cloud</strong>
+      </div>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

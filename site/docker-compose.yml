@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  web:
+    image: nginx:alpine
+    container_name: clipstream-web
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./:/var/www/clipstream:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
