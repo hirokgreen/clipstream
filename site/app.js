@@ -49,28 +49,6 @@ struct ClipstreamView: View {
     content: "#38BDF8"
   },
   {
-    id: 4,
-    title: "{\"status\": 200, \"vps\": \"KVM 1\"}",
-    type: "code",
-    lang: "JSON",
-    isPinned: false,
-    time: "12m ago",
-    content: `{
-  "status": 200,
-  "hostname": "srv2094630.hstgr.cloud",
-  "domain": "clipstream.sysnode.cloud",
-  "plan": "KVM 1",
-  "specs": {
-    "vcpu": 1,
-    "memory_mb": 4096,
-    "disk_gb": 50,
-    "bandwidth_gb": 4000
-  },
-  "ip": "201.18.215.21",
-  "active": true
-}`
-  },
-  {
     id: 5,
     title: "Clipstream v1.0.0 Release Notes",
     type: "text",
